@@ -1,0 +1,17 @@
+{
+  "name": "aspro-parcer",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "scripts": {
+    "dev": "npx ts-node src/index.ts"
+  },
+  "dependencies": {
+    "csv": "^6.3.11",
+    "puppeteer": "^24.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}
