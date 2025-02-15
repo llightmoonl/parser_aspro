@@ -58,33 +58,27 @@ import {generate, stringify} from 'csv';
     let mail: string | null = "";
 
     try {
-      telephone = await newPage.$eval('footer.a[href^="tel:"]', tel => tel.textContent);
+      telephone = await newPage.$eval('a[href^="tel:"]', tel => tel.textContent);
     } catch {
       telephone = "";
     }
 
     try {
-      mail = await newPage.$eval('footer.a[href^="mailto:"]', mail => mail.textContent);
+      mail = await newPage.$eval('a[href^="mailto:"]', mail => mail.textContent);
     } catch {
       mail = "";
     }
     contactsUrls.push({url, telephone, mail});
     await newPage.close();
   }
-  console.log(contactsUrls);
-  generate({
-    length: contactsUrls.length,
-    objectMode: true,
-    seed: 1
+
+  const data = stringify(contactsUrls, {
+    header: true,
+    delimiter: ' '
   })
-    .pipe(
-      stringify(contactsUrls, {
-        header: true,
-        delimiter: ' ',
-      })
-    )
-    .pipe(process.stdout)
-  // fs.writeFile("./dist/data.csv", , {encoding: "binary"});
+
+  console.log(data);
+
   await browser.close();
 })();
 
