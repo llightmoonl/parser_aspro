@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/parcer.iml" filepath="$PROJECT_DIR$/.idea/parcer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/parser_aspro.iml" filepath="$PROJECT_DIR$/.idea/parser_aspro.iml" />
     </modules>
   </component>
 </project>

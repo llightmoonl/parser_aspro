@@ -1,5 +1,6 @@
 import puppeteer from 'puppeteer';
-import {generate} from 'csv-generate';
+import {generate, stringify} from 'csv';
+
 
 (async () => {
   const browser = await puppeteer.launch({
@@ -22,69 +23,68 @@ import {generate} from 'csv-generate';
   for (let link of sectionsLinks) {
     const newPage = await browser.newPage();
 
-    if (link) {
-      await newPage.goto(link, {waitUntil: "domcontentloaded"});
-
-      const urls = await newPage.$$eval('a.catalog-list__item-site-link', links => {
-        return links.map(link => `https://${link.textContent}`)
-      })
-      urlSection.push(...urls);
-
+    if (!link) {
       await newPage.close();
-    } else {
-      await newPage.close();
-      return;
+      return null;
     }
+    await newPage.goto(link, {waitUntil: "domcontentloaded"});
+
+    const urls = await newPage.$$eval('a.catalog-list__item-site-link', links => {
+      return links.map(link => `https://${link.textContent}`)
+    })
+    urlSection.push(...urls);
+
+    await newPage.close();
   }
 
   for (let url of urlSection) {
     const newPage = await browser.newPage();
 
-    if (url) {
-      let task = null;
-
-      try {
-        task = newPage.goto(url, {waitUntil: "domcontentloaded"});
-      }
-      catch (err) {
-        await newPage.close();
-        continue;
-      }
-
-      const wait = new Promise(r => setTimeout(r, 10000));
-
-      try {
-        await Promise.race([task, wait]);
-      }
-      catch (err) {
-        await newPage.close();
-        continue;
-      }
-
-      let telephone: string | null = "";
-      let mail: string | null = "";
-
-      try {
-        telephone = await newPage.$eval('a[href^="tel:"]', tel => tel.textContent);
-      }
-      catch {
-        telephone = "";
-      }
-
-      try {
-        mail = await newPage.$eval('a[href^="mailto:"]', mail => mail.textContent);
-      }
-      catch {
-        mail = "";
-      }
-
-      contactsUrls.push({url, telephone, mail});
+    if (!url) {
       await newPage.close();
-    } else {
-      await newPage.close();
-      return;
     }
+
+    const task = newPage.goto(url, {waitUntil: "domcontentloaded"});
+    const wait = new Promise(r => setTimeout(r, 10000));
+
+    try {
+      await Promise.race([task, wait]);
+    } catch (err) {
+      await newPage.close();
+      continue;
+    }
+
+    let telephone: string | null = "";
+    let mail: string | null = "";
+
+    try {
+      telephone = await newPage.$eval('footer.a[href^="tel:"]', tel => tel.textContent);
+    } catch {
+      telephone = "";
+    }
+
+    try {
+      mail = await newPage.$eval('footer.a[href^="mailto:"]', mail => mail.textContent);
+    } catch {
+      mail = "";
+    }
+    contactsUrls.push({url, telephone, mail});
+    await newPage.close();
   }
+  console.log(contactsUrls);
+  generate({
+    length: contactsUrls.length,
+    objectMode: true,
+    seed: 1
+  })
+    .pipe(
+      stringify(contactsUrls, {
+        header: true,
+        delimiter: ' ',
+      })
+    )
+    .pipe(process.stdout)
+  // fs.writeFile("./dist/data.csv", , {encoding: "binary"});
   await browser.close();
 })();
 
