@@ -3,10 +3,8 @@ import fs from 'fs';
 import {stringify} from 'csv';
 
 (async () => {
-  let time = performance.now();
-
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: true,
     args: ['--no-sandbox'],
   });
   const page = await browser.newPage();
@@ -105,6 +103,3 @@ import {stringify} from 'csv';
   await page.close();
   await browser.close();
 })();
-
-
-
