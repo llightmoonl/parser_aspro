@@ -12,6 +12,7 @@
     "csv-stringify": "^6.5.2",
     "dotenv": "^16.4.7",
     "puppeteer": "^24.2.0",
+    "puppeteer-cluster": "^0.24.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
   }

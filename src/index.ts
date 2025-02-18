@@ -1,4 +1,6 @@
 import puppeteer from 'puppeteer';
+import {Cluster} from 'puppeteer-cluster';
+
 import {FormattingData, CsvHandler} from './utils';
 
 (async () => {
@@ -9,7 +11,7 @@ import {FormattingData, CsvHandler} from './utils';
   const page = await browser.newPage();
   await page.setRequestInterception(true);
 
-  const resourcesLimited: Array<string> = ['stylesheet', 'font', 'image'];
+  const resourcesLimited: Array<string> = ['stylesheet', 'font', 'image', 'media', 'other'];
 
   page.on('request', req => {
     if (resourcesLimited.includes(req.resourceType())) {
@@ -59,10 +61,23 @@ import {FormattingData, CsvHandler} from './utils';
     }
   }
 
-  const contacts = [];
+  await page.close();
+  await browser.close();
+
+  const contacts: Array<Array<string>> = [];
   const csvHandler = new CsvHandler("data.csv", ['URL-сайта', 'Решение аспро', 'Email', 'Телефон']);
 
-  for (let section of urlSection) {
+  const cluster = await Cluster.launch({
+    concurrency: Cluster.CONCURRENCY_PAGE,
+    maxConcurrency: 6,
+    monitor: true,
+    puppeteerOptions: {
+      headless: false,
+      args: ['--no-sandbox'],
+    }
+  })
+
+  await cluster.task(async({page, data: section}) => {
     let telephone: string | null = "";
     let mail: string | null = "";
 
@@ -73,11 +88,7 @@ import {FormattingData, CsvHandler} from './utils';
     const task = page.goto(section.url, {waitUntil: "domcontentloaded"});
     const wait = new Promise(r => setTimeout(r, 3000));
 
-    try {
-      await Promise.race([task, wait]);
-    } catch (err) {
-      continue;
-    }
+    await Promise.race([task, wait]);
 
     try {
       telephone = await page.$eval('a[href^="tel:"]', tel => tel.textContent);
@@ -97,9 +108,14 @@ import {FormattingData, CsvHandler} from './utils';
       FormattingData.email(mail as string),
       FormattingData.telephone(telephone as string)]
     );
-  }
-  csvHandler.recordFile(contacts);
+  })
 
-  await page.close();
-  await browser.close();
+  for (let section of urlSection) {
+    await cluster.queue(section);
+  }
+
+  await cluster.idle();
+  await cluster.close();
+
+  csvHandler.recordFile(contacts);
 })();
