@@ -2,9 +2,21 @@ import puppeteer from 'puppeteer';
 import fs from 'fs';
 import {stringify} from 'csv';
 
+function formattingTelephone(initialTelephone: string) {
+  const formatTelephone = ((/(?:\+|\d)[\d\-\(\) ]{9,}\d/g).exec(initialTelephone));
+
+  return formatTelephone ? formatTelephone[0] : initialTelephone;
+}
+
+function formattingEmail(initialEmail: string) {
+  const formatEmail = ((/([A-Za-z0-9._-]+@[a-z0-9.-]+)/i).exec(initialEmail));
+
+  return formatEmail ? formatEmail[0] : initialEmail;
+}
+
 (async () => {
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: false,
     args: ['--no-sandbox'],
   });
   const page = await browser.newPage();
@@ -87,16 +99,18 @@ import {stringify} from 'csv';
     try {
       telephone = await page.$eval('a[href^="tel:"]', tel => tel.textContent);
     } catch (error) {
+      telephone = "";
       console.log(error)
     }
 
     try {
       mail = await page.$eval('a[href^="mailto:"]', mail => mail.textContent);
     } catch (error) {
+      telephone = "";
       console.log(error);
     }
 
-    stringfier.write([section.url, section.solution, mail, telephone]);
+    stringfier.write([section.url, section.solution, formattingEmail(mail as string), formattingTelephone(telephone as string)]);
   }
   stringfier.pipe(writableStream);
 
