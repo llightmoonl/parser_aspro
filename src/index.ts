@@ -1,18 +1,5 @@
 import puppeteer from 'puppeteer';
-import fs from 'fs';
-import {stringify} from 'csv';
-
-function formattingTelephone(initialTelephone: string) {
-  const formatTelephone = ((/(?:\+|\d)[\d\-\(\) ]{9,}\d/g).exec(initialTelephone));
-
-  return formatTelephone ? formatTelephone[0] : initialTelephone;
-}
-
-function formattingEmail(initialEmail: string) {
-  const formatEmail = ((/([A-Za-z0-9._-]+@[a-z0-9.-]+)/i).exec(initialEmail));
-
-  return formatEmail ? formatEmail[0] : initialEmail;
-}
+import {FormattingData, CsvHandler} from './utils';
 
 (async () => {
   const browser = await puppeteer.launch({
@@ -20,12 +7,12 @@ function formattingEmail(initialEmail: string) {
     args: ['--no-sandbox'],
   });
   const page = await browser.newPage();
-
   await page.setRequestInterception(true);
-  await page.setJavaScriptEnabled(false);
+
+  const resourcesLimited: Array<string> = ['stylesheet', 'font', 'image'];
 
   page.on('request', req => {
-    if (req.resourceType() === 'stylesheet' || req.resourceType() === 'font' || req.resourceType() === 'image') {
+    if (resourcesLimited.includes(req.resourceType())) {
       req.abort();
     } else {
       req.continue();
@@ -72,12 +59,8 @@ function formattingEmail(initialEmail: string) {
     }
   }
 
-  const filename = "data.csv";
-
-  const columns = ['URL-сайта', 'Решение аспро', 'Email', 'Телефон'];
-  const writableStream = fs.createWriteStream(filename);
-
-  const stringfier = stringify({header: true, columns});
+  const contacts = [];
+  const csvHandler = new CsvHandler("data.csv", ['URL-сайта', 'Решение аспро', 'Email', 'Телефон']);
 
   for (let section of urlSection) {
     let telephone: string | null = "";
@@ -99,20 +82,23 @@ function formattingEmail(initialEmail: string) {
     try {
       telephone = await page.$eval('a[href^="tel:"]', tel => tel.textContent);
     } catch (error) {
-      telephone = "";
       console.log(error)
     }
 
     try {
       mail = await page.$eval('a[href^="mailto:"]', mail => mail.textContent);
     } catch (error) {
-      telephone = "";
       console.log(error);
     }
 
-    stringfier.write([section.url, section.solution, formattingEmail(mail as string), formattingTelephone(telephone as string)]);
+    contacts.push([
+      section.url,
+      section.solution,
+      FormattingData.email(mail as string),
+      FormattingData.telephone(telephone as string)]
+    );
   }
-  stringfier.pipe(writableStream);
+  csvHandler.recordFile(contacts);
 
   await page.close();
   await browser.close();
