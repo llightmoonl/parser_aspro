@@ -4,8 +4,6 @@ import {Cluster} from 'puppeteer-cluster';
 import {FormattingData, CsvHandler} from './utils';
 
 (async () => {
-  let time = performance.now();
-
   const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox'],
@@ -28,24 +26,22 @@ import {FormattingData, CsvHandler} from './utils';
     {waitUntil: "domcontentloaded"}
   );
 
-  const sectionsLinks: Array<string | null> = await page.$$eval('a.sections-list__item-link', links => {
-    return links.map(link => link.href);
-  });
-
-  await page.close();
-  await browser.close();
-
-  const cluster: Awaited<Cluster<any, any>> = await Cluster.launch({
+  const cluster = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_PAGE,
     maxConcurrency: 6,
     monitor: true,
     puppeteerOptions: {
       headless: true,
       args: ['--no-sandbox'],
-    }
+    },
   })
 
-  await cluster.task(async({page, data: link}) => {
+  const sectionsLinks: Array<string | null> = await page.$$eval('a.sections-list__item-link', links => {
+    return links.map(link => link.href);
+  });
+
+
+  await cluster.task(async ({page, data: link}) => {
     if (!link) {
       return null;
     }
@@ -81,22 +77,11 @@ import {FormattingData, CsvHandler} from './utils';
   }
 
   await cluster.idle();
-  await cluster.close();
-
-  const cluster2: Awaited<Cluster<any, any>> = await Cluster.launch({
-    concurrency: Cluster.CONCURRENCY_PAGE,
-    maxConcurrency: 6,
-    monitor: true,
-    puppeteerOptions: {
-      headless: true,
-      args: ['--no-sandbox'],
-    }
-  })
 
   const contacts: Array<Array<string>> = [];
   const csvHandler = new CsvHandler("data.csv", ['URL-сайта', 'Решение аспро', 'Email', 'Телефон']);
 
-  await cluster2.task(async({page, data: section}) => {
+  await cluster.task(async ({page, data: section}) => {
     let telephone: string | null = "";
     let mail: string | null = "";
 
@@ -130,13 +115,13 @@ import {FormattingData, CsvHandler} from './utils';
   })
 
   for (let section of urlSection) {
-    await cluster2.queue(section);
+    await cluster.queue(section);
   }
+  await page.close();
+  await browser.close();
 
-  await cluster2.idle();
-  await cluster2.close();
+  await cluster.idle();
+  await cluster.close();
 
   csvHandler.recordFile(contacts);
-
-  console.log(performance.now() - time)
 })();
