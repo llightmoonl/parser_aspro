@@ -2,8 +2,8 @@ import fs from 'fs';
 import {stringify} from 'csv-stringify';
 
 export class CsvHandler {
-  protected filename: string;
-  protected columns: Array<string>;
+  private readonly filename: string;
+  private readonly columns: Array<string>;
 
   constructor(filename: string, columns: Array<string>) {
     this.filename = filename;
