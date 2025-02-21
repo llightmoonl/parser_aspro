@@ -1,2 +1,2 @@
-export {FormattingData} from './FormattingData';
-export {CsvHandler} from './CsvHandler';
+export {FormattingData} from './formattingData';
+export {CsvHandler} from './csvHandler';
