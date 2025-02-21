@@ -2,7 +2,7 @@ import type {Page, PuppeteerNodeLaunchOptions} from 'puppeteer';
 
 export {TaskFunction} from "puppeteer-cluster/dist/Cluster";
 
-export interface ClusterOptions {
+export interface ClusterSettings {
   concurrency: number,
   maxConcurrency: number,
   monitor: boolean,

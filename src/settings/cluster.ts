@@ -1,7 +1,7 @@
 import {Cluster} from "puppeteer-cluster";
-import {ClusterOptions} from "../types";
+import {ClusterSettings} from "../types";
 
-export const cluster: ClusterOptions = {
+export const clusterSettings: ClusterSettings = {
   concurrency: Cluster.CONCURRENCY_PAGE,
   maxConcurrency: 6,
   monitor: true,
